@@ -1,0 +1,38 @@
+---
+- name: Deploy Flask Application
+  hosts: web
+  become: yes
+  vars:
+    docker_image: "fatmagr48/myapp:latest"
+    container_name: "flask_app"
+    app_port: 5000
+
+  tasks:
+    - name: Ensure Docker is installed (Ubuntu)
+      apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Pull the latest Docker image
+      docker_image:
+        name: "{{ docker_image }}"
+        source: pull
+        force_source: yes
+
+    - name: Stop and remove existing container
+      docker_container:
+        name: "{{ container_name }}"
+        state: absent
+
+    - name: Run the new container
+      docker_container:
+        name: "{{ container_name }}"
+        image: "{{ docker_image }}"
+        state: started
+        restart_policy: always
+        published_ports:
+          - "80:{{ app_port }}"
+        env:
+          ENV: "production"
